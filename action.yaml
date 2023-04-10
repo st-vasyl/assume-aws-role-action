@@ -1,0 +1,32 @@
+name: Assume AWS Role
+
+description: Assume AWS role in other account without access keys
+
+branding:
+  icon: 'cloud'
+  color: 'orange'
+
+inputs:
+  role-arn:
+    required: true
+    description: 'ARN of the role to assume'
+
+runs:
+  using: "composite"
+  steps:
+  - name: Configure AWS Credentials
+    shell: bash
+    run: |
+      SESSION=$(aws sts assume-role \
+      --role-arn "${{ inputs.role-arn }}" \
+      --role-session-name AWSCLI \
+      --query "Credentials.[AccessKeyId,SecretAccessKey,SessionToken]" \
+      --output text)
+
+      echo AWS_ACCESS_KEY_ID=$(echo $SESSION | cut -d' ' -f1) >> $GITHUB_ENV
+      echo AWS_SECRET_ACCESS_KEY=$(echo $SESSION | cut -d' ' -f2) >> $GITHUB_ENV
+      echo AWS_SESSION_TOKEN=$(echo $SESSION | cut -d' ' -f3) >> $GITHUB_ENV
+
+  - name: Check Profile
+    shell: bash
+    run: aws sts get-caller-identity
